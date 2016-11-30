@@ -19,11 +19,17 @@ import Data.Aeson.Versions
 import Data.Aeson.Versions.Internal
 import Data.Aeson.Versions.Sideload
 
+import qualified Data.ByteString as BS
+
+import Data.CaseInsensitive
+
 import Data.Maybe
 
 import Data.Proxy
 
 import Data.Singletons.Prelude hiding ((:>))
+
+import Data.String
 
 import GHC.TypeLits
 
@@ -37,7 +43,7 @@ import Servant.Server.Internal
 
 import Snap.Core hiding (Method)
 
-data Sideloaded
+data Sideloaded (s :: Symbol)
 
 methodRouterSideloaded :: forall ctypes a deps m env baseType.
                           (AllCTRender ctypes a
@@ -46,15 +52,15 @@ methodRouterSideloaded :: forall ctypes a deps m env baseType.
                           ,InflatableBase deps baseType a
                           ,MonadSnap m
                           )
-                       => Proxy deps -> Proxy baseType -> Method -> Proxy ctypes -> Status
+                       => Proxy deps -> Proxy baseType -> String -> Method -> Proxy ctypes -> Status
                        -> Delayed m env (m a)
                        -> Router m env -- Request (RoutingApplication m) m
-methodRouterSideloaded _ bt method proxy status action = leafRouter route'
+methodRouterSideloaded _ bt hdr method proxy status action = leafRouter route'
   where
     -- route' :: env -> Request -> (RouteResult Response -> m a) -> m a
     route' env request respond =
       let accH = fromMaybe ct_wildcard $ getHeader hAccept request -- lookup hAccept $ requestHeaders request
-          sideloadH = getHeader "X-Sideload" request
+          sideloadH = getHeader (fromString hdr) request
 
           inflatedProxy :: Proxy (Map (TyCon1 JSONVersioned) (Keys (SupportBase baseType)))
           inflatedProxy = Proxy
@@ -88,15 +94,16 @@ instance {-# OVERLAPPABLE #-} (AllCTRender ctypes a
                               ,AllSatisfy (Ord' :.$$$ Id') deps
                               ,InflatableBase deps b a
                               ,ReflectMethod method
-                              ,KnownNat status)
-                              => HasServer (Verb method status ctypes a :> Sideloaded) ctx m where
-  type ServerT (Verb method status ctypes a :> Sideloaded) m = m a
+                              ,KnownNat status
+                              ,KnownSymbol hdr)
+                              => HasServer (Verb method status ctypes a :> Sideloaded hdr) ctx m where
+  type ServerT (Verb method status ctypes a :> (Sideloaded hdr)) m = m a
 
-  route Proxy _ = methodRouterSideloaded (Proxy :: Proxy deps) (Proxy :: Proxy b) method (Proxy :: Proxy ctypes) status
+  route Proxy _ = methodRouterSideloaded (Proxy :: Proxy deps) (Proxy :: Proxy b) header method (Proxy :: Proxy ctypes) status
 
     where method = reflectMethod (Proxy :: Proxy method)
           status = toEnum . fromInteger $ natVal (Proxy :: Proxy status)
-
+          header = symbolVal (Proxy :: Proxy hdr)
 
 {-
 instance {-# OVERLAPPABLE #-} (AllCTRender ctypes (t a)

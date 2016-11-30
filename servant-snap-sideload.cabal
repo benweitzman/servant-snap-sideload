@@ -27,6 +27,8 @@ library
                      , snap-core
                      , transformers
                      , singletons
+                     , bytestring
+                     , case-insensitive
   default-language:    Haskell2010
 
 test-suite servant-snap-sideload-test

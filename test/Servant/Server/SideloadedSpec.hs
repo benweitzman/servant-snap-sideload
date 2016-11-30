@@ -67,8 +67,8 @@ app' rs = makeSnaplet "servantsnap" "A test app for servant-snap" Nothing $ do
     return App
 
 type SideloadAPI =
-         "foo" :> Versioned Get '[] Vfile :> Sideloaded
-    :<|> "foos" :> Versioned Get '[] [Vfile] :> Sideloaded
+         "foo" :> Versioned Get '[] Vfile :> Sideloaded "X-Sideload"
+    :<|> "foos" :> Versioned Get '[] [Vfile] :> Sideloaded "X-Sideload"
 --    :<|>  "bah" :> Get '[JSON] Int
 
 sideloadApi :: Proxy SideloadAPI
