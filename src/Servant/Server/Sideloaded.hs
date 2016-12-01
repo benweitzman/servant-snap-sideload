@@ -51,6 +51,7 @@ methodRouterSideloaded :: forall ctypes a deps m env baseType.
                           ,AllSatisfy (Ord' :.$$$ Id') deps
                           ,InflatableBase deps baseType a
                           ,MonadSnap m
+                          ,InflateCBase a m
                           )
                        => Proxy deps -> Proxy baseType -> String -> Method -> Proxy ctypes -> Status
                        -> Delayed m env (m a)
@@ -71,7 +72,7 @@ methodRouterSideloaded _ bt hdr method proxy status action = leafRouter route'
                                ) env request respond $ \ output -> do
             let handleA = handleAcceptH proxy  (AcceptHeader accH) output
             processMethodRouter handleA status method Nothing request
-          _ -> runAction (action `actionBind` (liftIO . inflateP bt)
+          _ -> runAction (action `actionBind` inflateP bt
                                  `addMethodCheck` methodCheck method request
                                  `addAcceptCheck` acceptCheck inflatedProxy accH
                          ) env request respond $ \ (output :: Full deps a) -> do
@@ -93,6 +94,7 @@ instance {-# OVERLAPPABLE #-} (AllCTRender ctypes a
                               ,AllCTRender (Map (TyCon1 JSONVersioned) (Keys (SupportBase b))) (UsingSingle (Full deps a))
                               ,AllSatisfy (Ord' :.$$$ Id') deps
                               ,InflatableBase deps b a
+                              ,InflateCBase a m
                               ,ReflectMethod method
                               ,KnownNat status
                               ,KnownSymbol hdr)
