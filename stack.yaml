@@ -47,7 +47,7 @@ packages:
   extra-dep: true
 - location:
     git: https://github.com/vfiles/aeson-versioned-sideloading
-    commit: 25ab925e65cb44f871e2ffc4519f7700bbcfca7a
+    commit: 517794f042e6dc2f7767baed300e4055217e6dad
   extra-dep: true
 - location:
     git: https://github.com/vfiles/servant-snap
